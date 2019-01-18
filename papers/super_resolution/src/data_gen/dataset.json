@@ -1,0 +1,19 @@
+{
+	"type" : "synth" , 
+	"src_path" : "/media/zlabsdl/raghul/word_rcgn/training/model_iterations/27/data/words" ,
+	"dest_path" : "fixed_words/super_resolution" ,
+	"data" : {"alpha_num_fonts" :{
+		"files" : ["test.txt", "18.7k_mjsynth_1.txt", "18.7k_mjsynth_2.txt", "25k_nos.txt", "12.5k_alpha_numeric.txt"] ,
+		"name" : "all_fonts" 
+			} ,
+		"symbol_fonts" : {
+			"files" : ["receipt.txt","6.25k_amount.txt", "symbol_words.txt"] ,
+			"name" : "483_fonts" 
+		} ,
+		"date_fonts" : {
+			"files" : ["6.25k_date.txt"] ,
+			"name" : "1340_fonts"
+		}},
+	"gan_split" : "0" ,
+	"synth_split" : "1"
+}
