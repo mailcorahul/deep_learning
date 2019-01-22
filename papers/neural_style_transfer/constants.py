@@ -1,7 +1,7 @@
 IMG_DIR='img';
 
 MODEL = 'vgg16_bn';
-STEPS = 500;
+STEPS = 10000;
 
-MAX_W = 640;
-MAX_H = 480;
+MAX_W = 400;
+MAX_H = 400;

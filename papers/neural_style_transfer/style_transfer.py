@@ -1,10 +1,14 @@
 import cv2
 import os
 import numpy as np
+import scipy.ndimage.filters
+
+from functools import partial
 
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
 from torch.autograd import Variable
@@ -34,7 +38,30 @@ def get_images(idx):
 
 	return cnt, style;
 
+def content_loss(yhat):
+	return F.mse_loss(cnt_features, yhat);
+
+def step(loss_fn):
+
+	global i;
+	vgg(ip);
+	ip_features = sfs.features;
+	loss = loss_fn(ip_features);
+	optimizer.zero_grad();
+	loss.backward();
+	i += 1;
+	if i % 100 == 0:
+		print('Step - {}, Loss - {}'.format(i, loss.data[0]));
+		out_img = ip.data.cpu().squeeze().permute(1,2,0).numpy();
+		cv2.imwrite(os.path.join('debug', str(i) + '.png'), out_img*255);
+
+	return loss;
+
+
 if __name__ == '__main__':
+
+
+	gpu0 = torch.device("cuda:0")
 
 	MAX = len(os.listdir(IMG_DIR))/2;
 	print('Reading content, style images...');
@@ -49,7 +76,7 @@ if __name__ == '__main__':
 	cnt, style = torch.Tensor(np_cnt), torch.Tensor(np_style);	
 
 	# picking model params upto 38 layers leaving out classifier and freezing weights
-	vgg = nn.Sequential(*list(vgg.features.children())[:41]);
+	vgg = nn.Sequential(*list(vgg.features.children())[:41]).cuda();
 	for p in vgg.parameters():
 		p.requires_grad = False;
 
@@ -57,27 +84,17 @@ if __name__ == '__main__':
 	sfs = SaveFeatures(vgg[40]);
 
 	# pass content image and save features
-	vgg(Variable(cnt[None]));
+	op = vgg(Variable(cnt[None].to(gpu0)));
 	cnt_features = sfs.features;
 
 	# input noise image and set it trainable
 	np_ip = np.random.uniform(0.0, 1.0, size=np_cnt.shape);
-	ip = torch.Tensor(np_ip)[None];
+	np_ip = scipy.ndimage.filters.median_filter(np_ip, [8,8,1]);
+	ip = torch.Tensor(np_ip)[None].to(gpu0);
 	ip = Variable(ip, requires_grad=True);
 
-	criterion = nn.MSELoss();
-	optimizer = optim.SGD([ip], lr=0.01);
+	optimizer = optim.LBFGS([ip], lr=1);
 
-	for i in range(STEPS):
-		vgg(ip);
-		ip_features = sfs.features;
-		loss = criterion(ip_features, cnt_features);
-		optimizer.zero_grad();
-		loss.backward();
-		optimizer.step();
-
-		if i % 10 == 0:
-			print(loss.data);
-			out_img = ip.data.squeeze().permute(1,2,0).numpy();
-			print(np.amax(out_img), np.amin(out_img));
-			cv2.imwrite(os.path.join('debug', str(i) + '.png'), out_img*255);
+	i = 0;
+	while i < STEPS:
+		optimizer.step(partial(step, content_loss));
