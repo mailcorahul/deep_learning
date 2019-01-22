@@ -6,3 +6,4 @@ Things done:
 Things to try:
 	1. Use mean subtraction
 	2. Different optim
+	3. Try diff layer features for style loss

@@ -1,4 +1,5 @@
 import cv2
+import sys
 import os
 import numpy as np
 import scipy.ndimage.filters
@@ -41,20 +42,35 @@ def get_images(idx):
 def content_loss(yhat):
 	return F.mse_loss(cnt_features, yhat);
 
-def step(loss_fn):
+def gram(x):
+	b,c,h,w = x.size();
+	x = x.view(b*c, -1);
+	return torch.mm(x, x.t());
+
+def style_loss(yhat):
+
+	style_gram = gram(sty_features);
+	ip_gram = gram(yhat);
+
+	return F.mse_loss(style_gram, ip_gram);
+
+def step():
 
 	global i;
 	vgg(ip);
 	ip_features = sfs.features;
-	loss = loss_fn(ip_features);
+	cnt_loss = content_loss(ip_features);
+	sty_loss = style_loss(ip_features);
+	loss = sty_loss;
 	optimizer.zero_grad();
 	loss.backward();
-	i += 1;
+
 	if i % 100 == 0:
 		print('Step - {}, Loss - {}'.format(i, loss.data[0]));
 		out_img = ip.data.cpu().squeeze().permute(1,2,0).numpy();
 		cv2.imwrite(os.path.join('debug', str(i) + '.png'), out_img*255);
 
+	i += 1;
 	return loss;
 
 
@@ -73,7 +89,7 @@ if __name__ == '__main__':
 	print('Loading {} model...'.format(MODEL));
 	model = getattr(models, MODEL);
 	vgg = model(pretrained=True);
-	cnt, style = torch.Tensor(np_cnt), torch.Tensor(np_style);	
+	cnt, style = torch.Tensor(np_cnt), torch.Tensor(np_style);		
 
 	# picking model params upto 38 layers leaving out classifier and freezing weights
 	vgg = nn.Sequential(*list(vgg.features.children())[:41]).cuda();
@@ -81,11 +97,16 @@ if __name__ == '__main__':
 		p.requires_grad = False;
 
 	# register forward hook for layer 40
-	sfs = SaveFeatures(vgg[40]);
+	sfs = SaveFeatures(vgg[26]);
 
-	# pass content image and save features
-	op = vgg(Variable(cnt[None].to(gpu0)));
+	# pass content/style image and save features
+	vgg(Variable(cnt[None].to(gpu0)));
 	cnt_features = sfs.features;
+
+	vgg(Variable(style[None].to(gpu0)));
+	sty_features = sfs.features;
+
+	print(cnt_features.size());
 
 	# input noise image and set it trainable
 	np_ip = np.random.uniform(0.0, 1.0, size=np_cnt.shape);
@@ -95,6 +116,7 @@ if __name__ == '__main__':
 
 	optimizer = optim.LBFGS([ip], lr=1);
 
+	print('Training...');
 	i = 0;
 	while i < STEPS:
-		optimizer.step(partial(step, content_loss));
+		optimizer.step(step);
