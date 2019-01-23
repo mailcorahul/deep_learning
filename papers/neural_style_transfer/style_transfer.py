@@ -40,7 +40,11 @@ def get_images(idx):
 	return cnt, style;
 
 def content_loss(yhat):
-	return F.mse_loss(cnt_features, yhat);
+	_loss = 0;
+	for i in range(len(yhat)):
+		_loss += F.mse_loss(cnt_features[i], yhat[i]);
+
+	return _loss/len(yhat);
 
 def gram(x):
 	b,c,h,w = x.size();
@@ -59,11 +63,11 @@ def style_loss(yhat):
 
 def step():
 
-	c_w = 2;
-	s_w = 0.005;
+	c_w = 1;
+	s_w = 0.001;
 	global i;
 	vgg(ip);
-	cnt_ip_features = cnt_sfs.features.clone();
+	cnt_ip_features = [sf.features.clone() for sf in cnt_sfs];
 	sty_ip_features = [sf.features.clone() for sf in sty_sfs];
 	cnt_loss = c_w * content_loss(cnt_ip_features);
 	sty_loss = s_w * style_loss(sty_ip_features);
@@ -88,7 +92,7 @@ if __name__ == '__main__':
 
 	MAX = len(os.listdir(IMG_DIR))/2;
 	print('Reading content, style images...');
-	np_cnt, np_style = get_images(np.random.randint(MAX));
+	np_cnt, np_style = get_images(0);
 
 	normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]);
@@ -104,21 +108,17 @@ if __name__ == '__main__':
 		p.requires_grad = False;
 
 	# register forward hook for content image
-	cnt_sfs = SaveFeatures(vgg[26]);
+	layers = [5, 12, 22];
+	cnt_sfs = [SaveFeatures(vgg[i]) for i in layers];
 
 	# pass content/style image and save features
 	vgg(Variable(cnt[None].to(gpu0)));
-	cnt_features = cnt_sfs.features.clone();
+	cnt_features = [sf.features.clone() for sf in cnt_sfs];
 
 	layers = [5, 12, 22, 32, 42];
 	sty_sfs = [SaveFeatures(vgg[i]) for i in layers];
 	vgg(Variable(style[None].to(gpu0)));
 	sty_features = [sf.features.clone() for sf in sty_sfs];
-
-	print('Content feature map size {}'.format(cnt_features.size()));
-	print('Style feature map size');
-	for sf in sty_features:
-		print(sf.size());
 
 	# input noise image and set it trainable
 	np_ip = np.random.uniform(0.0, 1.0, size=np_cnt.shape);
