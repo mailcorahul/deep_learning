@@ -45,28 +45,35 @@ def content_loss(yhat):
 def gram(x):
 	b,c,h,w = x.size();
 	x = x.view(b*c, -1);
-	return torch.mm(x, x.t());
+	return torch.mm(x, x.t())
 
 def style_loss(yhat):
 
-	style_gram = gram(sty_features);
-	ip_gram = gram(yhat);
+	_loss = 0;
+	for i in range(len(yhat)):
+		style_gram = gram(sty_features[i]);
+		ip_gram = gram(yhat[i]);
+		_loss += F.mse_loss(style_gram, ip_gram);
 
-	return F.mse_loss(style_gram, ip_gram);
+	return _loss/len(yhat);
 
 def step():
 
+	c_w = 2;
+	s_w = 0.005;
 	global i;
 	vgg(ip);
-	ip_features = sfs.features;
-	cnt_loss = content_loss(ip_features);
-	sty_loss = style_loss(ip_features);
-	loss = sty_loss;
+	cnt_ip_features = cnt_sfs.features.clone();
+	sty_ip_features = [sf.features.clone() for sf in sty_sfs];
+	cnt_loss = c_w * content_loss(cnt_ip_features);
+	sty_loss = s_w * style_loss(sty_ip_features);
+	loss = cnt_loss + sty_loss;
 	optimizer.zero_grad();
 	loss.backward();
 
 	if i % 100 == 0:
-		print('Step - {}, Loss - {}'.format(i, loss.data[0]));
+		print('Step - {}, Content loss - {}, Style loss - {}, Total Loss - {}'\
+			.format(i, cnt_loss.data[0], sty_loss.data[0], loss.data[0]));
 		out_img = ip.data.cpu().squeeze().permute(1,2,0).numpy();
 		cv2.imwrite(os.path.join('debug', str(i) + '.png'), out_img*255);
 
@@ -92,21 +99,26 @@ if __name__ == '__main__':
 	cnt, style = torch.Tensor(np_cnt), torch.Tensor(np_style);		
 
 	# picking model params upto 38 layers leaving out classifier and freezing weights
-	vgg = nn.Sequential(*list(vgg.features.children())[:41]).cuda();
+	vgg = nn.Sequential(*list(vgg.features.children())[:43]).cuda();
 	for p in vgg.parameters():
 		p.requires_grad = False;
 
-	# register forward hook for layer 40
-	sfs = SaveFeatures(vgg[26]);
+	# register forward hook for content image
+	cnt_sfs = SaveFeatures(vgg[26]);
 
 	# pass content/style image and save features
 	vgg(Variable(cnt[None].to(gpu0)));
-	cnt_features = sfs.features;
+	cnt_features = cnt_sfs.features.clone();
 
+	layers = [5, 12, 22, 32, 42];
+	sty_sfs = [SaveFeatures(vgg[i]) for i in layers];
 	vgg(Variable(style[None].to(gpu0)));
-	sty_features = sfs.features;
+	sty_features = [sf.features.clone() for sf in sty_sfs];
 
-	print(cnt_features.size());
+	print('Content feature map size {}'.format(cnt_features.size()));
+	print('Style feature map size');
+	for sf in sty_features:
+		print(sf.size());
 
 	# input noise image and set it trainable
 	np_ip = np.random.uniform(0.0, 1.0, size=np_cnt.shape);
@@ -116,7 +128,7 @@ if __name__ == '__main__':
 
 	optimizer = optim.LBFGS([ip], lr=1);
 
-	print('Training...');
+	print('\nTraining...');
 	i = 0;
 	while i < STEPS:
 		optimizer.step(step);
