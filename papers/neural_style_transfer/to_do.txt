@@ -1,0 +1,9 @@
+Content loss:
+Things done:
+	1. Used /255 normalization
+	2. Used vgg16_bn and last conv output for loss
+	3. LBFGS optim
+Things to try:
+	1. Use mean subtraction
+	2. Different optim
+	3. Try diff layer features for style loss
