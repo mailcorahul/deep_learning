@@ -17,6 +17,7 @@ from torch.autograd import Variable
 from helpers import *
 from constants import *
 
+# class which stores forward pass outputs of vgg using a forward hook
 class SaveFeatures(nn.Module):
 	features = None;
 	def __init__(self, m):
@@ -26,6 +27,7 @@ class SaveFeatures(nn.Module):
 	def close(self):
 		self.hook.remove();
 
+# method to read content/style images
 def get_images(idx):
 
 	cnt = read_img(os.path.join(IMG_DIR, 'content_{}.jpg'.format(idx)));
@@ -39,6 +41,7 @@ def get_images(idx):
 
 	return cnt, style;
 
+# MSE loss between content-input features
 def content_loss(yhat):
 	_loss = 0;
 	for i in range(len(yhat)):
@@ -46,11 +49,13 @@ def content_loss(yhat):
 
 	return _loss/len(yhat);
 
+# compute gram matrix
 def gram(x):
 	b,c,h,w = x.size();
 	x = x.view(b*c, -1);
 	return torch.mm(x, x.t())
 
+# MSE loss between gram matrices of content and style images
 def style_loss(yhat):
 
 	_loss = 0;
@@ -64,7 +69,7 @@ def style_loss(yhat):
 def step():
 
 	c_w = 1;
-	s_w = 0.001;
+	s_w = 0.1;
 	global i;
 	vgg(ip);
 	cnt_ip_features = [sf.features.clone() for sf in cnt_sfs];
@@ -92,7 +97,7 @@ if __name__ == '__main__':
 
 	MAX = len(os.listdir(IMG_DIR))/2;
 	print('Reading content, style images...');
-	np_cnt, np_style = get_images(0);
+	np_cnt, np_style = get_images(IDX);
 
 	normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]);
