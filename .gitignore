@@ -1,2 +1,7 @@
 __pycache__/
+<<<<<<< HEAD
+img/
+debug/
+=======
 papers/neural_style_transfer/debug/
+>>>>>>> 34d5a2c2a3511364b448a3fda8db94188fffe6ee
