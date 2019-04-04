@@ -25,8 +25,8 @@ class MNISTDataset(Dataset):
         idx = int(self.data_size*TEST_RATIO);
         self.test_data = self.train_data[:idx];
         self.test_labels = self.train_labels[:idx];
-        self.train_data = self.train_data[idx:];
-        self.train_labels = self.train_labels[idx:];
+        self.train_data = self.train_data[:idx]#idx:];
+        self.train_labels = self.train_labels[:idx]#idx:];
         self.train_len = self.train_labels.size(0);
 
         print('Train images {}, Train labels {}'.format(self.train_data.size(),

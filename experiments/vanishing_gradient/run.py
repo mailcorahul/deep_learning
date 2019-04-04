@@ -10,11 +10,27 @@ from tqdm import tqdm
 from net import Net
 
 EPOCHS = 500;
-BATCH_SIZE = 256;
+BATCH_SIZE = 512;
 
-def get_grad(params):
+LAYERS_TO_SAVE = [0, 1, 2, 3];
+PREV_PARAMS = {};
+CHANGE_PARAMS = {};
 
-    LAYERS_TO_SAVE = [1, 2, 3, 4];
+def get_grad(epoch):
+
+    for name, params in net.named_parameters():        
+        if 'weight' not in name and 'bias' not in name:
+            continue;
+        dparams = 0;
+        if epoch == 0:
+            PREV_PARAMS[name] = params;
+        else:
+            dparams = torch.sum(torch.abs(params - PREV_PARAMS[name]));
+            CHANGE_PARAMS[name] = dparams;
+            PREV_PARAMS[name] = params;
+    
+        print('Param {}, dparams {}'.format(
+            name, dparams));
 
 
 def train(net, mnist_loader):
@@ -51,6 +67,7 @@ def train(net, mnist_loader):
             running_loss += loss.item();
         pbar.close()
         print('Epoch - {} --> Loss - {}'.format(epoch+1, running_loss/STEPS));
+        #get_grad(epoch)
         
 
 if __name__ == '__main__':
@@ -61,10 +78,8 @@ if __name__ == '__main__':
     net = Net();
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
     print(device)
-
     net.to(device);
 
     train(net, mnist_loader);
