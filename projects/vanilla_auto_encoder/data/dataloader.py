@@ -1,4 +1,5 @@
 import torch
+from torch.autograd import Variable
 from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import numpy as np
@@ -17,8 +18,9 @@ class MNISTDataset(Dataset):
         idxs = np.arange(mnist_trainset.train_data.size(0))
         np.random.shuffle(idxs)
 
+        # reshape input data to (1, 784) and normalize to range [0., 1.]
         self.train_data = torch.reshape(
-                mnist_trainset.train_data[idxs].float(), (-1,1,28,28))/255.
+                mnist_trainset.train_data[idxs].float(), (-1,1,784))/255.
         self.data_size = self.train_data.size(0)
 
         idx = int(self.data_size*TEST_RATIO)
