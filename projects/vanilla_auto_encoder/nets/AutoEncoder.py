@@ -7,15 +7,15 @@ class AutoEncoder(nn.Module):
     def __init__(self):        
         super().__init__()
         self.encoder = nn.Sequential(
-                        nn.Linear(784, 512),
+                        nn.Linear(784, 256),
                         nn.ReLU(),
-                        nn.Linear(512, 256),
+                        nn.Linear(256, 64),
                         nn.ReLU()                        
                         )
         self.decoder = nn.Sequential(
-                        nn.Linear(256, 512),
+                        nn.Linear(64, 256),
                         nn.ReLU(),
-                        nn.Linear(512, 784),
+                        nn.Linear(256, 784),
                         nn.Sigmoid()
                         )
 

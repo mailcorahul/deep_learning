@@ -34,9 +34,10 @@ def train(net, dataset, batch_size=256, num_epochs=1000):
     Trains a neural net
 
     Args:
-        net:    Neural Network class
-        dataset:    Dataset class defining train/test dataset
+        net: Neural Network class
+        dataset: Dataset class defining train/test dataset
         batch_size: Number of input-output pairs per batch(step)
+        num_epochs: Number of epochs to train
     """
 
     # define dataloader
