@@ -1,5 +1,6 @@
 import cv2
 import sys
+import shutil
 import os
 import numpy as np
 import scipy.ndimage.filters
@@ -30,8 +31,8 @@ class SaveFeatures(nn.Module):
 # method to read content/style images
 def get_images(idx):
 
-	cnt = read_img(os.path.join(IMG_DIR, 'content_{}.jpg'.format(idx)));
-	style = read_img(os.path.join(IMG_DIR, 'style_{}.jpg'.format(idx)));
+	cnt = read_img(os.path.join(IMG_DIR, 'content_{}.png'.format(idx)));
+	style = read_img(os.path.join(IMG_DIR, 'style_{}.png'.format(idx)));
 
 	cnt = np.transpose(cnt, (2,0,1));
 	style = np.transpose(style, (2,0,1));
@@ -68,8 +69,8 @@ def style_loss(yhat):
 
 def step():
 
-	c_w = 1;
-	s_w = 0.1;
+	c_w = 0.001;
+	s_w = 0.001;
 	global i;
 	vgg(ip);
 	cnt_ip_features = [sf.features.clone() for sf in cnt_sfs];
@@ -94,6 +95,10 @@ if __name__ == '__main__':
 
 
 	gpu0 = torch.device("cuda:0")
+
+	if os.path.exists('debug'):
+		shutil.rmtree('debug')
+	os.makedirs('debug')
 
 	MAX = len(os.listdir(IMG_DIR))/2;
 	print('Reading content, style images...');
@@ -131,7 +136,7 @@ if __name__ == '__main__':
 	ip = torch.Tensor(np_ip)[None].to(gpu0);
 	ip = Variable(ip, requires_grad=True);
 
-	optimizer = optim.LBFGS([ip], lr=1);
+	optimizer = optim.LBFGS([ip], lr=0.005);
 
 	print('\nTraining...');
 	i = 0;

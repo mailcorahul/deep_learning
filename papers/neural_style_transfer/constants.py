@@ -1,5 +1,5 @@
 IMG_DIR='img';
-IDX = 0;
+IDX = 7
 
 MODEL = 'vgg16_bn';
 STEPS = 10000;
