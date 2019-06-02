@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 from data.dataloader import MNISTDataset
-from nets.AutoEncoder import AutoEncoder
+from nets.GAN import Discriminator, Generator
 
 def visualize(net, dataset, num_images=10):
     """
@@ -86,16 +86,17 @@ if __name__ == '__main__':
     # load dataset
     dataset = MNISTDataset()
 
-    # define autoencoder network
-    autoencoder = AutoEncoder()
+    # define generator and discriminator networks
+    discriminator = Discriminator(nc=1, nw=28, nh=28, nclasses=2)
+    generator = Generator(nc=1, nin_w=9, nin_h=9, nout_w=28, nout_h=28)
 
     print('\nNetwork summary...')
-    print(autoencoder)
-
-    # train autoencoder
-    train(
-        net=autoencoder, 
-        dataset=dataset,
-        batch_size=BATCH_SIZE,
-        num_epochs=NUM_EPOCHS
-    )
+    print(discriminator)
+    print(generator)
+    
+    # check output shapes
+    rnd_z = torch.Tensor(np.random.randn(1,9,9))
+    print(generator(rnd_z[None]).size())
+    
+    # train DCGAN
+    
