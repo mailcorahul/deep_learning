@@ -85,4 +85,7 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         final_conv = self.conv_block(x)
-        return self.classifier(final_conv)
+        class_scores = self.classifier(final_conv)
+        class_scores = torch.reshape(class_scores, (-1, 2, 1))
+
+        return class_scores

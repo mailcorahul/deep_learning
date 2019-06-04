@@ -18,18 +18,17 @@ class MNISTDataset(Dataset):
         idxs = np.arange(mnist_trainset.train_data.size(0))
         np.random.shuffle(idxs)
 
+        #print(torch.min(mnist_trainset.train_labels), torch.max(mnist_trainset.train_labels))
+        #print(mnist_trainset.train_labels.size())
+        
         # reshape input data to (1, 784) and normalize to range [0., 1.]
         self.train_data = torch.reshape(
                 mnist_trainset.train_data[idxs].float(), (-1,1,28,28))/255.
         self.data_size = self.train_data.size(0)
-
-        idx = int(self.data_size*TEST_RATIO)
-        self.test_data = self.train_data[:idx]
-        self.train_data = self.train_data[idx:]
         self.train_len = self.train_data.size(0)
+        self.train_label = torch.Tensor([1]).long() # since there is only one class - 'real' image
 
         print('Train images -- {}'.format(self.train_data.size()))
-        print('Test images -- {}'.format(self.test_data.size()))
 
     def __len__(self):
         return self.train_len
@@ -37,4 +36,4 @@ class MNISTDataset(Dataset):
     def __getitem__(self, idx):
 
         input = self.train_data[idx]
-        return input, input
+        return input, self.train_label
