@@ -3,6 +3,7 @@
 ## Overview
 This repository contains various implementations involving neural networks - deep learning papers, different neural network projects, collection of fundamental NN building blocks and experiments.
 
+## Implementations
 
 ### 1. Projects
 1. Product Duplicate Detection
@@ -22,3 +23,14 @@ This repository contains various implementations involving neural networks - dee
 
 ### 5. Experiments
 1. Vanishing gradient
+
+
+## Frameworks used
+### PyTorch
+
+## Author
+Raghul Asokan
+email: mailcorahul@gmail.com
+github: https://github.com/mailcorahul/
+linkedin: https://www.linkedin.com/in/raghul-asokan/
+medium: https://medium.com/@raghul_719
