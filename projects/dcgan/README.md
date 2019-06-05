@@ -10,8 +10,7 @@ DCGAN consists of two main components:
 ## Network Architecture
 ### Generator Network
 ![alt text](img/generator.png "(for illustration purpose only)")
-
-
+\*for illustration purpose only
 
 ## Datasets used
 1. MNIST dataset
