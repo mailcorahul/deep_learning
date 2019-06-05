@@ -29,8 +29,8 @@ This repository contains various implementations involving neural networks - dee
 ### PyTorch
 
 ## Author
-Raghul Asokan
-email: mailcorahul@gmail.com
-github: https://github.com/mailcorahul/
-linkedin: https://www.linkedin.com/in/raghul-asokan/
-medium: https://medium.com/@raghul_719
+**Raghul Asokan**  
+**email**: *mailcorahul@gmail.com*  
+**github**: *https://github.com/mailcorahul/*  
+**linkedin**: *https://www.linkedin.com/in/raghul-asokan/*  
+**medium**: *https://medium.com/@raghul_719*  
