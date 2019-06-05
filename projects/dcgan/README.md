@@ -8,7 +8,7 @@ DCGAN consists of two main components:
 2. Discriminator: A fully convolutional network that classifies an input image as 'real' or 'fake'.
 
 ## Network Architecture
-
+![alt text](img/generator.png "(for illustration purpose only)")
 
 
 
