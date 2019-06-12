@@ -12,21 +12,24 @@ import torch.optim as optim
 from data.dataloader import MNISTDataset
 from nets.GAN import Discriminator, Generator
 
-def visualize(net, dataset, num_images=10):
+
+gpu0 = torch.device("cuda:0")
+
+
+def visualize(net, num_images=10):
     """
     Visualizes outputs for random set of test images
     """
 
-    idxs = np.random.randint(dataset.test_data.size(0), size=(num_images,))
-    inputs = dataset.test_data[idxs]
+    inputs = generate_random_noise((1, 9, 9), num_images)
 
     # forward pass
-    outputs = net(inputs)
+    outputs = net(inputs.to(gpu0))
 
     # iterate over and save outputs to disk
     for i, output in enumerate(outputs):
-        output = output.data.numpy().reshape(28, 28)*255.
-        cv2.imwrite('/tmp/{}.png'.format(i), output)
+        output = output.cpu().data.numpy().reshape(28, 28)*255.
+        cv2.imwrite('/tmp/dcgan/{}.png'.format(i), output)
 
 def generate_random_noise(input_size, batch_size):
 
@@ -39,6 +42,7 @@ def set_grad(net, trainable):
 
     for p in net.parameters():
         p.requires_grad = trainable
+
 
 def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=1000):
     """
@@ -61,7 +65,12 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
     gen_optim = optim.Adam(generator_net.parameters(), lr=0.001)
     disc_optim = optim.Adam(discriminator_net.parameters(), lr=0.001)
 
+    # move to gpu
+    generator_net.to(gpu0)
+    discriminator_net.to(gpu0)
+
     steps = len(dataset)//batch_size
+    steps = 10
     print('Total number of steps - {}'.format(steps))
 
     gen_real_labels = torch.Tensor(np.ones((batch_size, 1))).long()
@@ -70,7 +79,7 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
     for epoch in range(num_epochs):    
         disc_loss = 0.
         gen_loss = 0.  
-        pbar = tqdm(total=steps)
+        pbar = tqdm(total=steps*2)
 
         for step_idx in range(steps*2):
             pbar.update(1)
@@ -84,11 +93,17 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
 
                 real_inputs, real_labels = next(dataloader)
                 rnd_batch = generate_random_noise((1, 9, 9), batch_size)
+
+                # move to gpu
+                rnd_batch = rnd_batch.to(gpu0)
+
                 fake_inputs = generator_net(rnd_batch)
                 fake_labels = gen_fake_labels
 
-                #inputs = inputs.to(device);
-                #labels = labels.to(device);
+                real_inputs = real_inputs.to(gpu0)
+                real_labels = real_labels.to(gpu0)
+                fake_inputs = fake_inputs.to(gpu0)
+                fake_labels = fake_labels.to(gpu0)
 
                 # zero the parameter gradients
                 disc_optim.zero_grad()
@@ -112,8 +127,14 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
                 set_grad(generator_net, trainable=True)
 
                 rnd_batch = generate_random_noise((1, 9, 9), batch_size)
+
+                # move to gpu
+                rnd_batch = rnd_batch.to(gpu0)
+
                 fake_inputs = generator_net(rnd_batch)
+                fake_inputs = fake_inputs.to(gpu0)
                 fake_labels = gen_real_labels
+                fake_labels = fake_labels.to(gpu0)
                 
                 gen_optim.zero_grad()
                 fake_outputs = discriminator_net(fake_inputs)
@@ -128,11 +149,13 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
         print('Epoch - {} --> Generator Loss - {:.4f}, Discriminator loss - {:.4f}'.format(
             epoch+1, gen_loss*2/steps, disc_loss*2/steps))
 
+        # visualize generator output after every epoch
+        visualize(generator_net)
 
 if __name__ == '__main__':
     
     BATCH_SIZE = 64
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 500
 
     # load dataset
     dataset = MNISTDataset()
