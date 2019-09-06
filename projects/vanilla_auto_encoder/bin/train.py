@@ -46,8 +46,11 @@ def train(net, dataset, batch_size=256, num_epochs=1000):
 
     # define criterion and optim 
     criterion = nn.MSELoss()
+    device = torch.device("cuda:0")
+    print(device)
+    net = net.to(device)
     optimizer = optim.Adam(net.parameters(), lr=0.001)
-
+    
     steps = len(dataset)//batch_size;
     print('Total number of steps - {}'.format(steps));
 
@@ -59,8 +62,8 @@ def train(net, dataset, batch_size=256, num_epochs=1000):
 
             # get the inputs
             inputs, labels = batch
-            #inputs = inputs.to(device);
-            #labels = labels.to(device);
+            inputs = inputs.to(device);
+            labels = labels.to(device);
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -75,13 +78,13 @@ def train(net, dataset, batch_size=256, num_epochs=1000):
 
         pbar.close()
         print('Epoch - {} --> Loss - {:.4f}'.format(epoch+1, running_loss/steps));        
-        visualize(net, dataset)
+        #visualize(net, dataset)
 
 
 if __name__ == '__main__':
     
     BATCH_SIZE = 64
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 100
 
     # load dataset
     dataset = MNISTDataset()
