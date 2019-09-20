@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.append('.')
 
@@ -14,7 +15,7 @@ from nets.GAN import Discriminator, Generator
 
 
 gpu0 = torch.device("cuda:0")
-
+os.makedirs('/tmp/dcgan', exist_ok=True)
 
 def visualize(net, num_images=10):
     """
@@ -34,7 +35,7 @@ def visualize(net, num_images=10):
 def generate_random_noise(input_size, batch_size):
 
     ch, h, w = input_size
-    rnd_batch = torch.Tensor(np.random.randn(batch_size, ch, h, w))
+    rnd_batch = torch.zeros(batch_size, ch, h, w).normal_(0, 1)
 
     return rnd_batch
 
@@ -56,25 +57,26 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
     """
 
     # define dataloader
-    dataloader = DataLoader(dataset, batch_size=batch_size, 
-        shuffle=True, num_workers=2)
-    dataloader = iter(dataloader)
+    _dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    dataloader = iter(_dataloader)
 
-    # define criterion and optim 
-    bce_loss = nn.CrossEntropyLoss()
-    gen_optim = optim.Adam(generator_net.parameters(), lr=0.001)
-    disc_optim = optim.Adam(discriminator_net.parameters(), lr=0.001)
-
+    # define criterion
+    bce_loss = nn.BCEWithLogitsLoss()
+    
     # move to gpu
-    generator_net.to(gpu0)
-    discriminator_net.to(gpu0)
+    generator_net = generator_net.cuda()
+    discriminator_net = discriminator_net.cuda()
+
+    # define optim
+    gen_optim = optim.Adam(generator_net.parameters())
+    disc_optim = optim.Adam(discriminator_net.parameters())
 
     steps = len(dataset)//batch_size
-    steps = 10
+    #steps = 10
     print('Total number of steps - {}'.format(steps))
 
-    gen_real_labels = torch.Tensor(np.ones((batch_size, 1))).long()
-    gen_fake_labels = torch.Tensor(np.zeros((batch_size, 1))).long()
+    gen_real_labels = torch.ones(batch_size, 1)
+    gen_fake_labels = torch.zeros(batch_size, 1)
 
     for epoch in range(num_epochs):    
         disc_loss = 0.
@@ -84,28 +86,32 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
         for step_idx in range(steps*2):
             pbar.update(1)
             # train discriminator
-            if step_idx%2 == 0:
-                #print('[INFO] Training discriminator...')
+            if True or step_idx == 0 or step_idx%25 != 0:
+                #print('[/] training discriminator...')
 
                 # freeze generator
                 set_grad(generator_net, trainable=False)
                 set_grad(discriminator_net, trainable=True)
 
-                real_inputs, real_labels = next(dataloader)
+                try:
+                    real_inputs, real_labels = next(dataloader)
+                except StopIteration:
+                    dataloader = iter(_dataloader)
+                    real_inputs, real_labels = next(dataloader)
+
                 rnd_batch = generate_random_noise((1, 9, 9), batch_size)
 
                 # move to gpu
-                rnd_batch = rnd_batch.to(gpu0)
+                rnd_batch = rnd_batch.cuda()
 
                 fake_inputs = generator_net(rnd_batch)
                 fake_labels = gen_fake_labels
 
-                real_inputs = real_inputs.to(gpu0)
-                real_labels = real_labels.to(gpu0)
-                fake_inputs = fake_inputs.to(gpu0)
-                fake_labels = fake_labels.to(gpu0)
+                real_inputs, real_labels = real_inputs.cuda(), real_labels.cuda()
+                fake_inputs, fake_labels = fake_inputs.cuda(), fake_labels.cuda()
 
                 # zero the parameter gradients
+                gen_optim.zero_grad()
                 disc_optim.zero_grad()
 
                 # forward + backward + optimize
@@ -121,7 +127,7 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
 
             # train generator
             else:
-                #print('[INFO] Training generator...')
+                print('[/] training generator...')
                 # freeze discriminator
                 set_grad(discriminator_net, trainable=False)
                 set_grad(generator_net, trainable=True)
@@ -129,13 +135,14 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
                 rnd_batch = generate_random_noise((1, 9, 9), batch_size)
 
                 # move to gpu
-                rnd_batch = rnd_batch.to(gpu0)
+                rnd_batch = rnd_batch.cuda()
 
                 fake_inputs = generator_net(rnd_batch)
-                fake_inputs = fake_inputs.to(gpu0)
+                fake_inputs = fake_inputs.cuda()
                 fake_labels = gen_real_labels
-                fake_labels = fake_labels.to(gpu0)
+                fake_labels = fake_labels.cuda()
                 
+                disc_optim.zero_grad()
                 gen_optim.zero_grad()
                 fake_outputs = discriminator_net(fake_inputs)
                 loss = bce_loss(fake_outputs, fake_labels)
@@ -154,14 +161,14 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
 
 if __name__ == '__main__':
     
-    BATCH_SIZE = 64
+    BATCH_SIZE = 512
     NUM_EPOCHS = 500
 
     # load dataset
     dataset = MNISTDataset()
 
     # define generator and discriminator networks
-    discriminator = Discriminator(nc=1, nw=28, nh=28, nclasses=2)
+    discriminator = Discriminator(nc=1, nw=28, nh=28, nclasses=1)
     generator = Generator(nc=1, nin_w=9, nin_h=9, nout_w=28, nout_h=28)
 
     print('\nNetwork summary...')

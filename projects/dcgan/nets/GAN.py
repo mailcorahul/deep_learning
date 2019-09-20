@@ -9,7 +9,7 @@ class BasicConvBlock(nn.Module):
         super().__init__()
         layers = []
         layers.append(nn.Conv2d(in_channels, out_channels, kernel_size))
-        layers.append(nn.ReLU())
+        layers.append(nn.ReLU(inplace=True))
         layers.append(nn.BatchNorm2d(out_channels))
 
         self.basic_conv = nn.Sequential(*layers)   
@@ -25,7 +25,7 @@ class ConvTransposeBlock(nn.Module):
         super().__init__()
         layers = []
         layers.append(nn.ConvTranspose2d(in_channels, out_channels, kernel_size))
-        layers.append(nn.ReLU())
+        layers.append(nn.ReLU(inplace=True))
         layers.append(nn.BatchNorm2d(out_channels))
 
         self.basic_conv = nn.Sequential(*layers)   
@@ -46,10 +46,14 @@ class Generator(nn.Module):
         padding = 0
         stride = 1
 
-        for out_channel, kernel_size in zip(channels, kernels):
-            layers.append(ConvTransposeBlock(ic, out_channel,
-                kernel_size))
-            ic = out_channel
+        for idx in range(len(channels)):
+            # add a conv, followed by a sigmoid
+            if idx == len(channels) - 1:
+                layers.append(nn.ConvTranspose2d(ic, channels[idx], kernels[idx]))
+                layers.append(nn.Sigmoid())
+            else:
+                layers.append(ConvTransposeBlock(ic, channels[idx], kernels[idx]))
+                ic = channels[idx]
         
         self.generate = nn.Sequential(*layers)
 
@@ -80,12 +84,12 @@ class Discriminator(nn.Module):
         self.conv_block = nn.Sequential(*layers)
         self.classifier = nn.Sequential(
                             nn.Conv2d(ic, nclasses, (hsize, wsize)),
-                            nn.Sigmoid()
+                            nn.BatchNorm2d(nclasses)
                             )
 
     def forward(self, x):
         final_conv = self.conv_block(x)
         class_scores = self.classifier(final_conv)
-        class_scores = torch.reshape(class_scores, (-1, 2, 1))
+        class_scores = torch.reshape(class_scores, (-1, 1))
 
         return class_scores

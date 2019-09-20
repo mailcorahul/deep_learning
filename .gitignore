@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+data/
+
+
+papers/neural_style_transfer/debug/
+papers/neural_style_transfer/img/
