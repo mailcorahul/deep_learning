@@ -23,8 +23,9 @@ def visualize(net, num_images=10):
     """
 
     inputs = generate_random_noise((1, 9, 9), num_images)
-
+    
     # forward pass
+    net.eval()
     outputs = net(inputs.to(gpu0))
 
     # iterate over and save outputs to disk
@@ -80,18 +81,18 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
 
     for epoch in range(num_epochs):    
         disc_loss = 0.
-        gen_loss = 0.  
-        pbar = tqdm(total=steps*2)
+        gen_loss = 0.
+        gen_steps = 0
+        disc_steps = 0
 
-        for step_idx in range(steps*2):
-            pbar.update(1)
+        for step_idx in tqdm(range(steps*2)):
             # train discriminator
-            if True or step_idx == 0 or step_idx%25 != 0:
+            if step_idx % 10 == 0:#step_idx == 0 or step_idx%25 != 0:
                 #print('[/] training discriminator...')
 
                 # freeze generator
-                set_grad(generator_net, trainable=False)
-                set_grad(discriminator_net, trainable=True)
+                #set_grad(generator_net, trainable=False)
+                #set_grad(discriminator_net, trainable=True)
 
                 try:
                     real_inputs, real_labels = next(dataloader)
@@ -124,13 +125,13 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
                 disc_optim.step()
 
                 disc_loss += loss.item()
+                disc_steps += 1
 
             # train generator
             else:
-                print('[/] training generator...')
                 # freeze discriminator
-                set_grad(discriminator_net, trainable=False)
-                set_grad(generator_net, trainable=True)
+                #set_grad(discriminator_net, trainable=False)
+                #set_grad(generator_net, trainable=True)
 
                 rnd_batch = generate_random_noise((1, 9, 9), batch_size)
 
@@ -150,11 +151,10 @@ def train(generator_net, discriminator_net, dataset, batch_size=256, num_epochs=
                 gen_optim.step()
 
                 gen_loss += loss.item()
+                gen_steps += 1
 
-
-        pbar.close()
-        print('Epoch - {} --> Generator Loss - {:.4f}, Discriminator loss - {:.4f}'.format(
-            epoch+1, gen_loss*2/steps, disc_loss*2/steps))
+        print('Epoch - {} --> Generator Loss - {:.10f}, Discriminator loss - {:.10f}'.format(
+            epoch+1, gen_loss/gen_steps, disc_loss/disc_steps))
 
         # visualize generator output after every epoch
         visualize(generator_net)

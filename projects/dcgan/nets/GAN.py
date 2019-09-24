@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class BasicConvBlock(nn.Module):
     """ A Conv-Relu-BatchNorm block """
@@ -50,7 +51,6 @@ class Generator(nn.Module):
             # add a conv, followed by a sigmoid
             if idx == len(channels) - 1:
                 layers.append(nn.ConvTranspose2d(ic, channels[idx], kernels[idx]))
-                layers.append(nn.Sigmoid())
             else:
                 layers.append(ConvTransposeBlock(ic, channels[idx], kernels[idx]))
                 ic = channels[idx]
@@ -58,7 +58,7 @@ class Generator(nn.Module):
         self.generate = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.generate(x)
+        return torch.sigmoid(self.generate(x))
 
 class Discriminator(nn.Module):
     """ A Fully Convolutional neural net classifier """
@@ -82,10 +82,8 @@ class Discriminator(nn.Module):
             hsize = (hsize - kernel_size + 2*padding)//stride + 1
         
         self.conv_block = nn.Sequential(*layers)
-        self.classifier = nn.Sequential(
-                            nn.Conv2d(ic, nclasses, (hsize, wsize)),
-                            nn.BatchNorm2d(nclasses)
-                            )
+        self.classifier = nn.Conv2d(ic, nclasses, (hsize, wsize))
+
 
     def forward(self, x):
         final_conv = self.conv_block(x)
