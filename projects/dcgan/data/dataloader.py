@@ -26,7 +26,7 @@ class MNISTDataset(Dataset):
                 mnist_trainset.train_data[idxs].float(), (-1,1,28,28))/255.
         self.data_size = self.train_data.size(0)
         self.train_len = self.train_data.size(0)
-        self.train_label = torch.Tensor([1]).long() # since there is only one class - 'real' image
+        self.train_label = torch.Tensor([1]).float() # since there is only one class - 'real' image
 
         print('Train images -- {}'.format(self.train_data.size()))
 
