@@ -108,6 +108,8 @@ class DetectionTrainer:
             # forward pass
             batch_predictions = self.net(batch_images)
 
+            # TODO: get precision, recall and compute hmean
+
         # log metrics information for every epoch - precision, recall, hmean
         self.metrics.append({})
         self.metrics[self.epoch_idx]['precision'] = precision
@@ -150,7 +152,7 @@ class DetectionTrainer:
         
         """
 
-        model_filename = '{}_{}.pth'.format(self.dataset_name, self.epoch_idx)
+        model_filename = '{}_{}.pth'.format(self.dataset_name, self.epoch_idx) ## TODO dataset_name
 
         # save only best model i.e if 'metric' improves
         if criteria == 'best_model':
