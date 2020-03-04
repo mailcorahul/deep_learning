@@ -2,7 +2,9 @@ import torch.nn as nn
 import torchvision.models as models
 
 class FPN(nn.Module):
-    """Implementation of Feature Pyramid Network"""
+    """Implementation of Feature Pyramid Network.
+    Paper link: https://arxiv.org/pdf/1612.03144.pdf
+    """
 
     def __init__(self, backbone_name='resnet50', use_pretrained=True, num_classes=-1):
         super().__init__()
@@ -75,7 +77,7 @@ class FPN(nn.Module):
 
             print(pyramid_features[i].size())
 
-        # for top-most level
+        # for top-most level, simply attach a 1x1 conv to produce the coarse resolution map
         pyramid_features[-1] = self.conv1x1(self.features[-1])
 
         print('\n[/] shapes of output feature maps')
