@@ -13,6 +13,6 @@ class DeFocusNet(nn.Module):
     def forward(self, input):
 
         feature_volume = self.backbone(input)
-        output_map = torch.sigmoid(self.estimator(feature_volume))
+        output_map = self.estimator(feature_volume)
 
         return output_map
