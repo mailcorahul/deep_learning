@@ -13,6 +13,7 @@ class BlurDetection(Dataset):
         self.output_dir = os.path.join(self.root_dir, 'output')
         self.image_ids = os.listdir(self.input_dir)
 
+        # create a list of all image ids present in the dataset folder
         for i in range(len(self.image_ids)):
             self.image_ids[i] = os.path.splitext(self.image_ids[i])[0]
 
@@ -20,14 +21,18 @@ class BlurDetection(Dataset):
         return len(self.image_ids)
 
     def __getitem__(self, index):
+        # read input and output image
+        # input image should have 3 channels and output image should have 1 channel
         image_id = self.image_ids[index]
         input_image = Image.open(os.path.join(self.input_dir, image_id + '.jpg')).convert('RGB')
-        target_image = Image.open(os.path.join(self.output_dir, image_id + '.png')).convert('RGB')
+        target_image = Image.open(os.path.join(self.output_dir, image_id + '.png')).convert('L')
 
+        # apply transform if provided
         if self.transform:
             input_image = self.transform(input_image)
             target_image = self.transform(target_image)
 
+        # move tensors to gpu if 'use_gpu' flag is set
         if self.use_gpu:
             input_image = input_image.cuda()
             target_image = target_image.cuda()

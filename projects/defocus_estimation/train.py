@@ -23,7 +23,7 @@ args = parser.parse_args()
 def train():
 
     train_transform =  transforms.Compose([
-            transforms.Resize(512),
+            transforms.Resize((512, 512)),
             transforms.ToTensor()
         ])
     dataset = BlurDetection(root_dir=args.train_path, transform=train_transform, use_gpu=args.use_gpu)
