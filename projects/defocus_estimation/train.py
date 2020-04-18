@@ -22,12 +22,14 @@ args = parser.parse_args()
 
 def train():
 
-    train_transform =  transforms.Compose([
+    image_transform =  transforms.Compose([
             transforms.Resize((512, 512)),
             transforms.ToTensor()
         ])
-    dataset = BlurDetection(root_dir=args.train_path, transform=train_transform, use_gpu=args.use_gpu)
-    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    train_dataset = BlurDetection(root_dir=args.train_path, transform=image_transform, use_gpu=args.use_gpu)
+    test_dataset = BlurDetection(root_dir=args.test_path, transform=image_transform, use_gpu=args.use_gpu)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=True)
 
     defocus_net = DeFocusNet()
     if args.use_gpu:
@@ -36,24 +38,24 @@ def train():
     optimizer = optim.Adam(params=defocus_net.parameters(), lr=1e-3)
     criterion = nn.BCEWithLogitsLoss()
 
-    steps = len(dataset)//args.batch_size
+    steps = len(train_dataset)//args.batch_size
     for epoch in range(args.num_epochs):
         epoch_loss = 0.
         pbar = tqdm(total=steps)
 
-        for batch_idx, batch in enumerate(dataloader):
+        for batch_idx, batch in enumerate(train_loader):
             pbar.update(1)
             input_image, target_image = batch
             pred_image = defocus_net(input_image)
 
             optimizer.zero_grad()
             train_loss = criterion(pred_image, target_image)
-            epoch_loss += train_loss
+            epoch_loss += train_loss.item()
             train_loss.backward()
             optimizer.step()
 
         pbar.close()
-        print('Epoch - {} --> Loss - {:.4f}'.format(epoch+1, epoch_loss/steps))
+        print('epoch: {} --> train loss: {:.4f}'.format(epoch+1, epoch_loss/steps))
 
 
 if __name__ == '__main__':
