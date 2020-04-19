@@ -1,6 +1,9 @@
+import os
 import argparse
 from tqdm import tqdm
 
+import numpy as np
+import cv2
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -11,19 +14,27 @@ from dataset import BlurDetection
 from net import DeFocusNet
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image-side', type=int, help="width and height of input image")
+parser.add_argument('--image-side', type=int, help="width and height of input image", default=512)
 parser.add_argument('--train-path', type=str, help='path to train dataset')
 parser.add_argument('--test-path', type=str, help='path to test dataset')
 parser.add_argument('--num-epochs', type=int, help='number of epochs to train')
 parser.add_argument('--batch-size', type=int, help='batch size during training')
+parser.add_argument('--debug-path', type=str, help='path to save test defocus maps for debugging')
 parser.add_argument('--use-gpu', action='store_true', help="flag to use gpu")
 
 args = parser.parse_args()
 
+def init():
+    """Function to create necessary directories."""
+
+    if args.debug_path is not None:
+        os.makedirs(args.debug_path, exist_ok=True)
+
 def train():
+    """Function to train Defocus prediction net."""
 
     image_transform =  transforms.Compose([
-            transforms.Resize((512, 512)),
+            transforms.Resize((args.image_side, args.image_side)),
             transforms.ToTensor()
         ])
     train_dataset = BlurDetection(root_dir=args.train_path, transform=image_transform, use_gpu=args.use_gpu)
@@ -43,6 +54,7 @@ def train():
         epoch_loss = 0.
         pbar = tqdm(total=steps)
 
+        # batch loop for one complete epoch
         for batch_idx, batch in enumerate(train_loader):
             pbar.update(1)
             input_image, target_image = batch
@@ -55,8 +67,25 @@ def train():
             optimizer.step()
 
         pbar.close()
-        print('epoch: {} --> train loss: {:.4f}'.format(epoch+1, epoch_loss/steps))
+        print('[/] epoch: {} --> train loss: {:.4f}'.format(epoch+1, epoch_loss/steps))
 
+        # create defocus maps on test set
+        print('[/] inference on test images...')
+        for (batch_inputs, batch_targets) in test_loader:
+            output_images = torch.sigmoid(defocus_net(batch_inputs))
+            output_images = output_images.squeeze(1).detach().cpu().numpy() * 255.
+
+            # save images to disk
+            for idx in range(output_images.shape[0]):
+                output_image = output_images[idx]
+                target_image = batch_targets[idx].squeeze(0).detach().cpu().numpy() * 255.
+                vis_image = np.hstack([target_image, output_image])
+                cv2.imwrite(os.path.join(args.debug_path, 'test_{}.png'.format(idx)), vis_image)
+        print('done.\n')
 
 if __name__ == '__main__':
+
+    print('[/] initializing...')
+    init()
+    print('[/] training...')
     train()
