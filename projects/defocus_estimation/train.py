@@ -65,6 +65,7 @@ def train():
             epoch_loss += train_loss.item()
             train_loss.backward()
             optimizer.step()
+            #break
 
         pbar.close()
         print('[/] epoch: {} --> train loss: {:.4f}'.format(epoch+1, epoch_loss/steps))
@@ -73,11 +74,17 @@ def train():
         print('[/] inference on test images...')
         for (batch_inputs, batch_targets) in test_loader:
             output_images = torch.sigmoid(defocus_net(batch_inputs))
-            output_images = output_images.squeeze(1).detach().cpu().numpy() * 255.
+            output_images = output_images.squeeze(1).detach().cpu().numpy()
 
             # save images to disk
             for idx in range(output_images.shape[0]):
+                # threshold predicted image
                 output_image = output_images[idx]
+                pmin, pmax = np.amin(output_image), np.amax(output_image)
+                output_image[output_image == pmin] = 0.
+                output_image[output_image == pmax] = 255.
+
+                # concat target and predicted image for visualization.
                 target_image = batch_targets[idx].squeeze(0).detach().cpu().numpy() * 255.
                 vis_image = np.hstack([target_image, output_image])
                 cv2.imwrite(os.path.join(args.debug_path, 'test_{}.png'.format(idx)), vis_image)
